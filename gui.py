@@ -7,15 +7,17 @@ from numpy import *
 #aircraft parameters
 RADIUS = 0.30 		#distance between center of craft and motor shaft (m)
 MASS = 1.2 			#mass of craft (kg)
-G = 9.81 			#Earth pull (ms^-2)
-PULL = array([0, -G, 0])
+G = 9.81 			#Earth pull (m*s^-2)
+PULL = array([0, -G*MASS, 0])
 A_INERTIA = RADIUS**2 * MASS 		#Angular inertia
 MOTOR1 = array([ RADIUS, 0, 0]) #Motor position, wrt body (m)
 MOTOR2 = array([-RADIUS, 0, 0]) #motor position, wrt body
+AIR_DENSITY = 1.2922 #kg*m^-3
 
 #display
 FPS = 30				# (Hz)
 FORCE_DRAW_SCALE = 10 	# (pixels/N)
+PIXELS_PER_METER = 100
 WIN_WIDTH = 640			# (pixels)
 WIN_HEIGHT = 640		# (pixels)
 
@@ -27,6 +29,15 @@ blue = (0,0,255)
 black = (0,0,0)
 checkers1 = (255,255,255)
 checkers2 = (200,200,200)
+
+def drag_area(radius, height, momentum, normal):
+	#~ area = pi*radius**2
+	return radius*2 * 0.015 
+	#~ .314 m2
+	#~ .6 x 0.018
+	#find the angle between direction and orientation
+	#~ angle = arctan2(normal[0], normal[1]) - arctan2(momentum[0], momentum[1])
+	#~ return area
 
 def checkers(winsize, checksize, xoffset, yoffset):
 	#~ SIZE = int(winsize*1.4)
@@ -42,11 +53,28 @@ def checkers(winsize, checksize, xoffset, yoffset):
 	return surf
 
 def craft():
-	surf = pygame.Surface((100, 100))
+	surf = pygame.Surface((2*RADIUS*PIXELS_PER_METER, 2*RADIUS*PIXELS_PER_METER))
 	surf.fill(green)
-	pygame.draw.rect(surf, blue, (0, 50, 100, 10))
+	pygame.draw.rect(surf, blue, (0, RADIUS*PIXELS_PER_METER, 2*RADIUS*PIXELS_PER_METER, 10))
 	surf.set_colorkey(green)
 	return surf
+
+def check_sign(v1, v2):
+	c_same = 0
+	c_diff = 0
+	s1 = sign(v1)
+	s2 = sign(v2)
+	for i in range(3):
+		if s1[i] != s2[i]:
+			c_diff += 1
+		elif v1[i] != 0:
+			c_same += 1
+
+	assert(not c_same or not c_diff)
+	#~ if c_same and c_diff:
+		#~ crashnburn()
+	if c_diff: return 1
+	return -1
 
 class Simulator:
 	@classmethod
@@ -104,20 +132,30 @@ class Simulator:
 			rot_matrix = Simulator.rotmat(self.a_moment * dt)
 			self.normal = dot(rot_matrix, self.normal)
 
+
+			## linear drag
+			drag = 0.5 * AIR_DENSITY * self.momentum**2 * 1 * drag_area(RADIUS, None, None, None)
+			sign = check_sign(self.momentum, drag)
+			drag = drag * sign
+			#~ print self.position
 			## update position and linear momentum
 			ratio = linalg.norm(self.f1_current + self.f2_current) / linalg.norm(self.normal)
-			netforce = (self.normal * ratio) + PULL
-			self.momentum = self.momentum + netforce/1  #whats the inertia?
+			netforce = (self.normal * ratio) + PULL + drag
+			self.momentum = self.momentum + (netforce/MASS)*dt
+			print drag, self.momentum
+			
 			self.position = self.position + self.momentum * dt
 			
 			self.t_start += dt
 
 class Input():
 	def __init__(self):
-		self.thrust1 = array([0.0, G*MASS/2+0.00001, 0.0])
-		self.thrust2 = array([0.0, G*MASS/2-0.00001, 0.0])
-		#~ self.thrust1 = array([0.0, 0, 0.0])
-		#~ self.thrust2 = array([0.0, 0, 0.0])
+		self.thrust1 = array([0.0, G*MASS/2+1.1, 0.0])
+		self.thrust2 = array([0.0, G*MASS/2+1.1, 0.0])
+		#~ self.thrust1 = array([0.0, G*MASS/2, 0.0])
+		#~ self.thrust2 = array([0.0, G*MASS/2, 0.0])
+		self.thrust1 = array([0.0, 0, 0.0])
+		self.thrust2 = array([0.0, 0, 0.0])
 
 t = time()
 dt = 1.0/FPS
@@ -144,7 +182,7 @@ while True:
 		sleep(t+dt-now)
 	
 	#draw
-	background = checkers(max(WIN_WIDTH, WIN_HEIGHT), 150, sim.position[0]/100, sim.position[1]/100)
+	background = checkers(max(WIN_WIDTH, WIN_HEIGHT), PIXELS_PER_METER, sim.position[0]*PIXELS_PER_METER, sim.position[1]*PIXELS_PER_METER)
 	s2 = pygame.transform.rotate(background, -sim.get_anglegrad())
 	r = s2.get_rect()
 	r.center = WIN_WIDTH/2, WIN_HEIGHT/2
