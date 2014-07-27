@@ -8,12 +8,13 @@ from numpy import *
 RADIUS = 0.30 		#distance between center of craft and motor shaft (m)
 MASS = 1.2 			#mass of craft (kg)
 G = 9.81 			#Earth pull (ms^-2)
-INERTIA = RADIUS**2 * MASS 		#
+PULL = array([0, -G, 0])
+A_INERTIA = RADIUS**2 * MASS 		#Angular inertia
 MOTOR1 = array([ RADIUS, 0, 0]) #Motor position, wrt body (m)
 MOTOR2 = array([-RADIUS, 0, 0]) #motor position, wrt body
 
 #display
-FPS = 60				# (Hz)
+FPS = 30				# (Hz)
 FORCE_DRAW_SCALE = 10 	# (pixels/N)
 WIN_WIDTH = 640			# (pixels)
 WIN_HEIGHT = 640		# (pixels)
@@ -68,13 +69,15 @@ class Simulator:
 	def __init__(self, t_start, steps):
 		self.t_start = t_start
 		self.steps = steps
-		self.a_moment = array([0, 0, 1])
+		self.a_moment = array([0, 0, 0])
+		self.momentum = array([0, 0, 0])
 		self.f1_target = array([0, 0, 0])
 		self.f2_target = array([0, 0, 0])
 		self.f1_current = array([0, 0, 0])
 		self.f2_current = array([0, 0, 0])
 		#output
 		self.normal = array([0, 1, 0])
+		self.position = array([0, 0, 0])
 
 	def get_anglegrad(self):
 		#~ print self.get_angle()
@@ -88,21 +91,33 @@ class Simulator:
 		self.f2_target = input.thrust2
 		while self.t_start < t_now:
 			#dt has passed
+
+			## Calculate current thrust
 			self.f1_current = (99*self.f1_current + self.f1_target)/100.0
 			self.f2_current = (99*self.f2_current + self.f2_target)/100.0
 
+			## Update angular momentum and normal
 			torque1 = cross(MOTOR1, self.f1_current)
 			torque2 = cross(MOTOR2, self.f2_current)
 			torque = torque1 + torque2
-			self.a_moment = self.a_moment + (torque/INERTIA)
+			self.a_moment = self.a_moment + (torque/A_INERTIA)
 			rot_matrix = Simulator.rotmat(self.a_moment * dt)
 			self.normal = dot(rot_matrix, self.normal)
+
+			## update position and linear momentum
+			ratio = linalg.norm(self.f1_current + self.f2_current) / linalg.norm(self.normal)
+			netforce = (self.normal * ratio) + PULL
+			self.momentum = self.momentum + netforce/1  #whats the inertia?
+			self.position = self.position + self.momentum * dt
+			
 			self.t_start += dt
 
 class Input():
 	def __init__(self):
-		self.thrust1 = array([0.0, 10.00, 0.0])
-		self.thrust2 = array([0.0, 10.0001, 0.0])
+		self.thrust1 = array([0.0, G*MASS/2+0.00001, 0.0])
+		self.thrust2 = array([0.0, G*MASS/2-0.00001, 0.0])
+		#~ self.thrust1 = array([0.0, 0, 0.0])
+		#~ self.thrust2 = array([0.0, 0, 0.0])
 
 t = time()
 dt = 1.0/FPS
@@ -129,7 +144,7 @@ while True:
 		sleep(t+dt-now)
 	
 	#draw
-	background = checkers(max(WIN_WIDTH, WIN_HEIGHT), 150, 20*t, 0)
+	background = checkers(max(WIN_WIDTH, WIN_HEIGHT), 150, sim.position[0]/100, sim.position[1]/100)
 	s2 = pygame.transform.rotate(background, -sim.get_anglegrad())
 	r = s2.get_rect()
 	r.center = WIN_WIDTH/2, WIN_HEIGHT/2
