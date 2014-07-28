@@ -79,8 +79,10 @@ class Input():
 		angle = self.pid(dt) #-pi - pi
 		f1 = (pi+angle)/(2*pi)
 		f2 = (pi-angle)/(2*pi)
-		f1 /= cos(quad.get_angle())
-		f2 /= cos(quad.get_angle())
+		# this can lead to instability, unable to recover during a spin
+		# to fix this we need to normalize
+		#~ f1 /= cos(quad.get_angle())
+		#~ f2 /= cos(quad.get_angle())
 		self.quad.thrust1 = f1*G*self.quad.mass*self.thrustscalar #output of motor 1, wrtbody (N)
 		self.quad.thrust2 = f2*G*self.quad.mass*self.thrustscalar
 
