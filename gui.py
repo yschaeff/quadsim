@@ -4,20 +4,22 @@ from pygame.locals import *
 import sys, math
 from numpy import *
 
+#world
+G = 9.81 			# Earth pull (m*s^-2)
+AIR_DENSITY = 1.2922			# kg*m^-3
+
 #aircraft parameters
-RADIUS = 0.30 		#distance between center of craft and motor shaft (m)
-MASS = 1.2 			#mass of craft (kg)
-G = 9.81 			#Earth pull (m*s^-2)
-PULL = array([0, -G*MASS, 0])
-A_INERTIA = RADIUS**2 * MASS 		#Angular inertia
-MOTOR1 = array([ RADIUS, 0, 0]) #Motor position, wrt body (m)
-MOTOR2 = array([-RADIUS, 0, 0]) #motor position, wrt body
-AIR_DENSITY = 1.2922 #kg*m^-3
+RADIUS = 0.30 		# distance between center of craft and motor shaft (m)
+MASS = 1.2 			# mass of craft (kg)
+PULL = array([0, -G*MASS, 0])	# Gravitational Force (kg*m*s^-1)
+A_INERTIA = RADIUS**2 * MASS 	# Angular inertia
+MOTOR1 = array([ RADIUS, 0, 0]) # Motor position, wrt body (m)
+MOTOR2 = array([-RADIUS, 0, 0]) # motor position, wrt body (m)
 
 #display
 FPS = 30				# (Hz)
 FORCE_DRAW_SCALE = 10 	# (pixels/N)
-PIXELS_PER_METER = 100
+PIXELS_PER_METER = 100	# (pixels/m)
 WIN_WIDTH = 640			# (pixels)
 WIN_HEIGHT = 640		# (pixels)
 
@@ -40,8 +42,9 @@ def drag_area(radius, height, momentum, normal):
 	#~ return area
 
 def checkers(winsize, checksize, xoffset, yoffset):
+	SIZE = winsize+4*checksize
 	#~ SIZE = int(winsize*1.4)
-	SIZE = int(winsize*2)
+	#~ SIZE = int(winsize*2)
 	surf = pygame.Surface((SIZE, SIZE))
 	surf.fill(checkers1)
 	for y in range(0, SIZE, 2*checksize):
@@ -60,21 +63,19 @@ def craft():
 	return surf
 
 def check_sign(v1, v2):
-	c_same = 0
-	c_diff = 0
-	s1 = sign(v1)
-	s2 = sign(v2)
+	c_same = 0; c_diff = 0
+	s1 = sign(v1); s2 = sign(v2)
 	for i in range(3):
 		if s1[i] != s2[i]:
 			c_diff += 1
-		elif v1[i] != 0:
+		elif v1[i] != -0 and v2[i] != 0:
 			c_same += 1
-
-	assert(not c_same or not c_diff)
-	#~ if c_same and c_diff:
-		#~ crashnburn()
-	if c_diff: return 1
-	return -1
+	if c_same and c_diff:
+		return 0 #undecided, lets pretent there is no drag
+	elif c_diff:
+		return 1
+	else:
+		return -1
 
 class Simulator:
 	@classmethod
@@ -98,7 +99,7 @@ class Simulator:
 		self.t_start = t_start
 		self.steps = steps
 		self.a_moment = array([0, 0, 0])
-		self.momentum = array([0, 0, 0])
+		self.momentum = array([2, 0, 0])
 		self.f1_target = array([0, 0, 0])
 		self.f2_target = array([0, 0, 0])
 		self.f1_current = array([0, 0, 0])
@@ -135,6 +136,7 @@ class Simulator:
 
 			## linear drag
 			drag = 0.5 * AIR_DENSITY * self.momentum**2 * 1 * drag_area(RADIUS, None, None, None)
+			## Drag lost sign due square, recover it.
 			sign = check_sign(self.momentum, drag)
 			drag = drag * sign
 			#~ print self.position
@@ -142,7 +144,6 @@ class Simulator:
 			ratio = linalg.norm(self.f1_current + self.f2_current) / linalg.norm(self.normal)
 			netforce = (self.normal * ratio) + PULL + drag
 			self.momentum = self.momentum + (netforce/MASS)*dt
-			print drag, self.momentum
 			
 			self.position = self.position + self.momentum * dt
 			
@@ -154,8 +155,8 @@ class Input():
 		self.thrust2 = array([0.0, G*MASS/2+1.1, 0.0])
 		#~ self.thrust1 = array([0.0, G*MASS/2, 0.0])
 		#~ self.thrust2 = array([0.0, G*MASS/2, 0.0])
-		self.thrust1 = array([0.0, 0, 0.0])
-		self.thrust2 = array([0.0, 0, 0.0])
+		#~ self.thrust1 = array([0.0, 0, 0.0])
+		#~ self.thrust2 = array([0.0, 0, 0.0])
 
 t = time()
 dt = 1.0/FPS
@@ -164,10 +165,8 @@ sim = Simulator(t_start=t, steps=500)
 pygame.init()
 screen = pygame.display.set_mode((WIN_WIDTH,WIN_HEIGHT))
 craft = craft()
-#~ background = checkers(max(WIN_WIDTH, WIN_HEIGHT), 150, 20*t, 0)
 
 while True:
-	#~ print "gui:", t
 	#collect user input
 	for event in pygame.event.get():
 		if event.type == QUIT:
@@ -188,11 +187,11 @@ while True:
 	r.center = WIN_WIDTH/2, WIN_HEIGHT/2
 	screen.blit(s2, r)
 	## Desired thrust
-	pygame.draw.line(screen, red, (370, 320), (370, 320-sim.f1_target[1]*FORCE_DRAW_SCALE), 5)
-	pygame.draw.line(screen, red, (270, 320), (270, 320-sim.f2_target[1]*FORCE_DRAW_SCALE), 5)
+	pygame.draw.line(screen, red, (320+RADIUS*PIXELS_PER_METER, 320), (320+RADIUS*PIXELS_PER_METER, 320-sim.f1_target[1]*FORCE_DRAW_SCALE), 5)
+	pygame.draw.line(screen, red, (320-RADIUS*PIXELS_PER_METER, 320), (320-RADIUS*PIXELS_PER_METER, 320-sim.f2_target[1]*FORCE_DRAW_SCALE), 5)
 	## actual thrust
-	pygame.draw.line(screen, green, (370, 320), (370, 320-sim.f1_current[1]*FORCE_DRAW_SCALE), 3)
-	pygame.draw.line(screen, green, (270, 320), (270, 320-sim.f2_current[1]*FORCE_DRAW_SCALE), 3)
+	pygame.draw.line(screen, green, (320+RADIUS*PIXELS_PER_METER, 320), (320+RADIUS*PIXELS_PER_METER, 320-sim.f1_current[1]*FORCE_DRAW_SCALE), 3)
+	pygame.draw.line(screen, green, (320-RADIUS*PIXELS_PER_METER, 320), (320-RADIUS*PIXELS_PER_METER, 320-sim.f2_current[1]*FORCE_DRAW_SCALE), 3)
 
 	s2 = craft
 	r = s2.get_rect()
