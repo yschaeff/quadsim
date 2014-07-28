@@ -3,21 +3,23 @@
 from time import sleep, time
 import pygame
 from pygame.locals import *
-import sys, math
+import sys
 from numpy import *
 from simulator import QuadSimulator
 from aircraft import Aircraft
 
 #world
 G = 9.81 			# Earth pull (m*s^-2)
-AIR_DENSITY = 1.2922			# kg*m^-3
+#~ AIR_DENSITY = 1.2922			# kg*m^-3 @ 0C
+AIR_DENSITY = 1.225			# kg*m^-3 @ 15C
+#~ AIR_DENSITY = 999			# kg*m^-3 @ 15C water
 
 #aircraft parameters
 RADIUS = 0.30 		# distance between center of craft and motor shaft (m)
 MASS = 1.2 			# mass of craft (kg)
 
 #display
-FPS = 30				# (Hz)
+FPS = 60				# (Hz)
 FORCE_DRAW_SCALE = 10 	# (pixels/N)
 PIXELS_PER_METER = 100	# (pixels/m)
 WIN_WIDTH = 640			# (pixels)
@@ -62,9 +64,10 @@ class Input():
 		self.target_angle = 0
 
 	def pid(self, dt): #return tuple motor force
-		kp = 1.00
+		#~ return (self.target_angle - self.quad.get_angle())/10000
+		kp = 1.0
 		ki = 2
-		kd = 0.04
+		kd = kp/25
 
 		error = self.target_angle - self.quad.get_angle()
 		self.integral += error*dt
@@ -76,8 +79,8 @@ class Input():
 		angle = self.pid(dt) #-pi - pi
 		f1 = (pi+angle)/(2*pi)
 		f2 = (pi-angle)/(2*pi)
-		#~ f1 /= cos(quad.get_angle())
-		#~ f2 /= cos(quad.get_angle())
+		f1 /= cos(quad.get_angle())
+		f2 /= cos(quad.get_angle())
 		self.quad.thrust1 = f1*G*self.quad.mass*self.thrustscalar #output of motor 1, wrtbody (N)
 		self.quad.thrust2 = f2*G*self.quad.mass*self.thrustscalar
 

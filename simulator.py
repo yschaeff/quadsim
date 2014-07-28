@@ -70,13 +70,21 @@ class QuadSimulator:
 			earth_pull = array([0, -self.G*quad.mass, 0])	# Gravitational Force (kg*m*s^-1)
 			drag = 0.5 * self.air_density * quad.momentum**2 * 1 * drag_area(quad)
 			## Drag lost sign due square, recover it.
-			sign = check_sign(quad.momentum, drag)
-			drag = drag * sign
+			#~ print quad.momentum, drag
+			#TODO THIS IS INCORRECT
+			#~ print drag, quad.momentum
+			if linalg.norm(quad.momentum) != 0:
+				drag = (0-quad.momentum)/linalg.norm(quad.momentum)*linalg.norm(drag)
+			#~ print drag, quad.momentum
+			#~ print (0-quad.momentum)/linalg.norm(quad.momentum)*linalg.norm(drag)
+			#~ sign = check_sign(quad.momentum, drag)
+			#~ drag = drag * sign
+			#~ print sign
 			## update position and linear momentum
 			ratio = linalg.norm(quad.f1_current + quad.f2_current) / linalg.norm(quad.normal)
 			netforce = (quad.normal * ratio) + earth_pull + drag
 			quad.momentum = quad.momentum + (netforce/quad.mass)*dt
-			
+			#~ print quad.momentum, drag
 			quad.position = quad.position + quad.momentum * dt
 			
 			self.t_start += dt

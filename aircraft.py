@@ -12,7 +12,7 @@ class Aircraft:
 		self.f2_target = array([0, 0, 0])
 		self.f1_current = array([0, 0, 0])
 		self.f2_current = array([0, 0, 0])
-		self.normal = array([1, -1, 0])
+		self.normal = array([0, 1, 0])
 		self.position = array([0, 0, 0])
 
 	def moment_of_inertia(self):
