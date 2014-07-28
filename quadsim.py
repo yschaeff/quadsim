@@ -22,6 +22,7 @@ FORCE_DRAW_SCALE = 10 	# (pixels/N)
 PIXELS_PER_METER = 100	# (pixels/m)
 WIN_WIDTH = 640			# (pixels)
 WIN_HEIGHT = 640		# (pixels)
+SPEED = 1
 
 #colors
 white = (255,255,255)
@@ -51,20 +52,40 @@ def craft():
 	surf.set_colorkey(green)
 	return surf
 
-class Input():
-	def __init__(self):
-		self.thrust1 = array([0.0, G*MASS/2+1.1, 0.0])
-		self.thrust2 = array([0.0, G*MASS/2+1.1, 0.0])
-		#~ self.thrust1 = array([0.0, G*MASS/2, 0.0])
-		#~ self.thrust2 = array([0.0, G*MASS/2, 0.0])
-		#~ self.thrust1 = array([0.0, 0, 0.0])
-		#~ self.thrust2 = array([0.0, 0, 0.0])
 
-t = time()
+class Input():
+	def __init__(self, quad):
+		self.quad = quad
+		self.error = 0
+		self.integral = 0
+		self.thrustscalar = 1
+		self.target_angle = 0
+
+	def pid(self, dt): #return tuple motor force
+		kp = 1.00
+		ki = 2
+		kd = 0.04
+
+		error = self.target_angle - self.quad.get_angle()
+		self.integral += error*dt
+		derivative = (error - self.error)/dt
+		self.error = error
+		return kp*error + ki*self.integral + kd*derivative
+
+	def force(self, dt):
+		angle = self.pid(dt) #-pi - pi
+		f1 = (pi+angle)/(2*pi)
+		f2 = (pi-angle)/(2*pi)
+		#~ f1 /= cos(quad.get_angle())
+		#~ f2 /= cos(quad.get_angle())
+		self.quad.thrust1 = f1*G*self.quad.mass*self.thrustscalar #output of motor 1, wrtbody (N)
+		self.quad.thrust2 = f2*G*self.quad.mass*self.thrustscalar
+
+t = time()*SPEED
 dt = 1.0/FPS
-input  = Input()
-sim = QuadSimulator(t, 500, AIR_DENSITY, G)
-quad = Aircraft(RADIUS, MASS)
+sim = QuadSimulator(t, 5000, AIR_DENSITY, G)
+quad = Aircraft(RADIUS, MASS, MASS*G*2)
+input  = Input(quad)
 pygame.init()
 screen = pygame.display.set_mode((WIN_WIDTH,WIN_HEIGHT))
 craft = craft()
@@ -75,21 +96,37 @@ while True:
 		if event.type == QUIT:
 			pygame.quit()
 			sys.exit()
+	keys = pygame.key.get_pressed()
+	if keys[pygame.K_UP]:
+		input.thrustscalar = 2
+	elif keys[pygame.K_DOWN]:
+		input.thrustscalar = 0
+	else:
+		input.thrustscalar = 1
+	if keys[pygame.K_LEFT]:
+		input.target_angle = pi/4
+	elif keys[pygame.K_RIGHT]:
+		input.target_angle = -pi/4
+	else:
+		input.target_angle = 0
+
 
 	#simulate until time t (future) -> time_sim
-	state = sim.simulate(t+dt, quad, input)
+	state = sim.simulate(t+dt*SPEED, quad, input)
 	#sleep until time_sim
-	now = time()
-	if (now < t+dt):
-		sleep(t+dt-now)
+	now = time()*SPEED
+	if (now < t+dt*SPEED):
+		sleep(t+dt*SPEED-now)
 	
 	#draw
 	background = checkers(max(WIN_WIDTH, WIN_HEIGHT), PIXELS_PER_METER, quad.position[0]*PIXELS_PER_METER, quad.position[1]*PIXELS_PER_METER)
 	s2 = pygame.transform.rotate(background, -sim.get_anglegrad(quad))
+	#~ s2 = background
 	r = s2.get_rect()
 	r.center = WIN_WIDTH/2, WIN_HEIGHT/2
 	screen.blit(s2, r)
 	## Desired thrust
+	#~ print quad.f1_target
 	pygame.draw.line(screen, red, (320+quad.radius*PIXELS_PER_METER, 320), (320+quad.radius*PIXELS_PER_METER, 320-quad.f1_target[1]*FORCE_DRAW_SCALE), 5)
 	pygame.draw.line(screen, red, (320-quad.radius*PIXELS_PER_METER, 320), (320-quad.radius*PIXELS_PER_METER, 320-quad.f2_target[1]*FORCE_DRAW_SCALE), 5)
 	## actual thrust
@@ -97,9 +134,10 @@ while True:
 	pygame.draw.line(screen, green, (320-quad.radius*PIXELS_PER_METER, 320), (320-quad.radius*PIXELS_PER_METER, 320-quad.f2_current[1]*FORCE_DRAW_SCALE), 3)
 
 	s2 = craft
+	#~ s2 = pygame.transform.rotate(s2, sim.get_anglegrad(quad))
 	r = s2.get_rect()
 	r.center = WIN_WIDTH/2, WIN_HEIGHT/2
 	screen.blit(s2, r)
 	pygame.display.update()
 
-	t += dt
+	t += dt*SPEED

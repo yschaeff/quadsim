@@ -1,19 +1,8 @@
-from time import sleep, time
-import pygame
-from pygame.locals import *
-import sys, math
 from numpy import *
 
-
-def drag_area(radius, height, momentum, normal):
-	#~ area = pi*radius**2
-	return radius*2 * 0.015 
-	#~ .314 m2
-	#~ .6 x 0.018
-	#find the angle between direction and orientation
-	#~ angle = arctan2(normal[0], normal[1]) - arctan2(momentum[0], momentum[1])
-	#~ return area
-
+def drag_area(quad):
+	return quad.area()
+	#TODO also depends on momentum and normal
 
 def check_sign(v1, v2):
 	c_same = 0; c_diff = 0
@@ -52,17 +41,18 @@ class QuadSimulator:
 		self.G = G
 
 	def get_anglegrad(self, quad):
-		return (self.get_angle(quad)*180)/pi
-
-	def get_angle(self, quad):
-		return arctan2(quad.normal[0], quad.normal[1])
+		return (quad.get_angle()*180)/pi
 
 	def simulate(self, t_now, quad, input):
 		dt = 1.0/self.steps
-		quad.f1_target = input.thrust1
-		quad.f2_target = input.thrust2
+
 		while self.t_start < t_now:
-			#dt has passed
+			input.force(dt)
+			t1 = min(max(quad.thrust1, 0), quad.max_thrust)
+			t2 = min(max(quad.thrust2, 0), quad.max_thrust)
+			
+			quad.f1_target = array([0, t1, 0])
+			quad.f2_target = array([0, t2, 0])
 
 			## Calculate current thrust
 			quad.f1_current = (99*quad.f1_current + quad.f1_target)/100.0
@@ -72,14 +62,13 @@ class QuadSimulator:
 			torque1 = cross(quad.motor_pos()[0], quad.f1_current)
 			torque2 = cross(quad.motor_pos()[1], quad.f2_current)
 			torque = torque1 + torque2
-			quad.a_moment = quad.a_moment + (torque/quad.angular_inertia())
-			rot_matrix = rotmat(quad.a_moment * dt)
+			quad.a_moment = quad.a_moment + (torque/quad.moment_of_inertia())*dt
+			rot_matrix = rotmat(quad.a_moment)
 			quad.normal = dot(rot_matrix, quad.normal)
-
 
 			## linear drag
 			earth_pull = array([0, -self.G*quad.mass, 0])	# Gravitational Force (kg*m*s^-1)
-			drag = 0.5 * self.air_density * quad.momentum**2 * 1 * drag_area(quad.radius, None, None, None)
+			drag = 0.5 * self.air_density * quad.momentum**2 * 1 * drag_area(quad)
 			## Drag lost sign due square, recover it.
 			sign = check_sign(quad.momentum, drag)
 			drag = drag * sign
