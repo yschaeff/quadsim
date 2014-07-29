@@ -29,3 +29,5 @@ Usage
 python quadsim.py
 
 Then use arrowkeys to steer the aircraft and spacebar to reset motion
+
+You will additionally need numpy and pygame packages
