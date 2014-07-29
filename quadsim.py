@@ -14,6 +14,8 @@ G = 9.81 				# Earth gravitational pull (m*s^-2)
 ## Note: air@15C=1.225, water@15C=999
 AIR_DENSITY = 1.225		# Density of fluid (kg*m^-3)
 
+SIMULATIONS_PER_SECOND = 5000
+
 ## Aircraft parameters
 RADIUS = 0.30 		# distance between center of craft and motor shaft (m)
 MASS = 1.2 			# mass of craft (kg)
@@ -24,7 +26,7 @@ FPS = 60				# Frames per second (Hz)
 FORCE_DRAW_SCALE = 10 	# (pixels/N)
 PIXELS_PER_METER = 100	# (pixels/m)
 WIN_WIDTH = 640			# (pixels)
-WIN_HEIGHT = 640		# (pixels)
+WIN_HEIGHT = 480		# (pixels)
 SPEED = 1				# ratio. SPEED<1 => slowdown (dimensionless) 
 
 ## Colors, used by gui
@@ -34,28 +36,45 @@ green     = (0,255,0)
 blue      = (0,0,255)
 black     = (0,0,0)
 gray      = (200,200,200)
+transparant = (1,1,1)
 checkers1 = white
 checkers2 = gray
 
-def draw_backdrop(winsize, checksize, xoffset, yoffset):
-	""""""
-	SIZE = winsize+4*checksize
-	surf = pygame.Surface((SIZE, SIZE))
-	surf.fill(checkers1)
-	for y in range(0, SIZE, 2*checksize):
-		for x in range(0, SIZE, 2*checksize):
-			pygame.draw.rect(surf, checkers2, (x+(xoffset%(2*checksize)), y+(yoffset%(2*checksize)), checksize, checksize))
-			pygame.draw.rect(surf, checkers2, (x+checksize+(xoffset%(2*checksize)), y+checksize+(yoffset%(2*checksize)), checksize, checksize))
-	#TODO: don't draw that here. gravitational pull
-	pygame.draw.line(surf, red, (SIZE/2, SIZE/2), (SIZE/2, SIZE/2+(MASS*G)*FORCE_DRAW_SCALE), 3)
-	return surf
+def draw_backdrop(size, ppm):
+	color = [checkers1, checkers2]
+	surface = pygame.Surface((size[0]+2*ppm, size[1]+2*ppm))
+	ysign = 0
+	for y in range(0, size[1]+2*ppm, ppm):
+		xsign = ysign
+		for x in range(0, size[0]+2*ppm, ppm):
+			pygame.draw.rect(surface, color[xsign], (x, y, ppm, ppm))
+			xsign ^= 1
+		ysign ^= 1
+	return surface
 
-def craft(quad):
-	surf = pygame.Surface((2*quad.radius*PIXELS_PER_METER, 2*quad.radius*PIXELS_PER_METER))
-	surf.fill(green)
-	pygame.draw.rect(surf, blue, (0, quad.radius*PIXELS_PER_METER, 2*quad.radius*PIXELS_PER_METER, 10))
-	surf.set_colorkey(green)
-	return surf
+
+def draw_world(screen, quad, size, backdrop, ppm, fscale, world):
+	# first draw background
+	offset = (quad.position*ppm)%(2*ppm)
+	screen.blit(backdrop, (0,0), (ppm*2-offset[0],
+		ppm*2-offset[1], size[0], size[1]))
+
+	## Then draw all forces in world frame
+	## Gravitational pull
+	pygame.draw.line(screen, green, (size[0]/2, size[1]/2),
+		(size[0]/2, size[1]/2+(quad.mass*world.G)*fscale), 3)
+
+def draw_body(screen, quad, size, ppm, fscale):
+	mx = size[0]/2
+	my = size[1]/2
+	## Draw aircraft
+	pygame.draw.rect(screen, blue, (mx-quad.radius*ppm, my, 2*quad.radius*ppm, quad.beamwidth*ppm+1))
+	## Desired thrust
+	pygame.draw.line(screen, red, (mx+quad.radius*ppm, my), (mx+quad.radius*ppm, my-quad.target_force[0][1]*fscale), 5)
+	pygame.draw.line(screen, red, (mx-quad.radius*ppm, my), (mx-quad.radius*ppm, my-quad.target_force[1][1]*fscale), 5)
+	## actual thrust
+	pygame.draw.line(screen, green, (mx+quad.radius*ppm, my), (mx+quad.radius*ppm, my-quad.current_force[0][1]*fscale), 3)
+	pygame.draw.line(screen, green, (mx-quad.radius*ppm, my), (mx-quad.radius*ppm, my-quad.current_force[0][1]*FORCE_DRAW_SCALE), 3)
 
 def get_anglegrad(quad):
 	return (quad.get_angle()*180)/pi
@@ -65,12 +84,13 @@ t = time()*SPEED
 dt = 1.0/FPS
 t_sim = t
 world = World(G, AIR_DENSITY)
-sim = QuadSimulator(5000)
+sim = QuadSimulator(SIMULATIONS_PER_SECOND)
 quad = Aircraft(RADIUS, MASS, MAX_THRUST)
 controller  = Controller(quad, world)
 
 pygame.init()
 screen = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
+backdrop = draw_backdrop((WIN_WIDTH, WIN_HEIGHT), PIXELS_PER_METER)
 
 while True:
 	#collect user input
@@ -78,7 +98,14 @@ while True:
 		if event.type == QUIT:
 			pygame.quit()
 			sys.exit()
+
 	keys = pygame.key.get_pressed()
+	if keys[ord('q')]:
+		pygame.quit()
+		sys.exit()
+	if keys[ord(' ')]:
+		quad.reset()
+		controller.reset()
 	if keys[pygame.K_UP]:
 		controller.thrustscalar = 2
 	elif keys[pygame.K_DOWN]:
@@ -96,25 +123,17 @@ while True:
 	t_sim = sim.simulate(t_sim, t+dt*SPEED, quad, controller, world)
 
 	#draw
-	background = draw_backdrop(max(WIN_WIDTH, WIN_HEIGHT), PIXELS_PER_METER, quad.position[0]*PIXELS_PER_METER, quad.position[1]*PIXELS_PER_METER)
-	#~ s2 = pygame.transform.rotate(background, -get_anglegrad(quad))
-	s2 = background
-	r = s2.get_rect()
-	r.center = WIN_WIDTH/2, WIN_HEIGHT/2
-	screen.blit(s2, r)
+	draw_world(screen, quad, (WIN_WIDTH, WIN_HEIGHT), backdrop, PIXELS_PER_METER, FORCE_DRAW_SCALE, world)
 
-	## Desired thrust
-	pygame.draw.line(screen, red, (320+quad.radius*PIXELS_PER_METER, 320), (320+quad.radius*PIXELS_PER_METER, 320-quad.f1_target[1]*FORCE_DRAW_SCALE), 5)
-	pygame.draw.line(screen, red, (320-quad.radius*PIXELS_PER_METER, 320), (320-quad.radius*PIXELS_PER_METER, 320-quad.f2_target[1]*FORCE_DRAW_SCALE), 5)
-	## actual thrust
-	pygame.draw.line(screen, green, (320+quad.radius*PIXELS_PER_METER, 320), (320+quad.radius*PIXELS_PER_METER, 320-quad.f1_current[1]*FORCE_DRAW_SCALE), 3)
-	pygame.draw.line(screen, green, (320-quad.radius*PIXELS_PER_METER, 320), (320-quad.radius*PIXELS_PER_METER, 320-quad.f2_current[1]*FORCE_DRAW_SCALE), 3)
+	surface = pygame.Surface((WIN_WIDTH, WIN_HEIGHT))
+	surface.fill(transparant)
+	surface.set_colorkey(transparant)
+	draw_body(surface, quad, (WIN_WIDTH, WIN_HEIGHT), PIXELS_PER_METER, FORCE_DRAW_SCALE)
 
-	s2 = craft(quad)
-	s2 = pygame.transform.rotate(s2, get_anglegrad(quad))
-	r = s2.get_rect()
+	surface = pygame.transform.rotate(surface, get_anglegrad(quad))
+	r = surface.get_rect()
 	r.center = WIN_WIDTH/2, WIN_HEIGHT/2
-	screen.blit(s2, r)
+	screen.blit(surface, r)
 	pygame.display.update()
 
 	#sleep until time_sim
