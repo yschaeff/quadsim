@@ -66,7 +66,7 @@ class QuadSimulator:
 				quad.target_force[i] = array([0, t, 0])
 				## Calculate current thrust
 				quad.current_force[i] = (99*quad.current_force[i] + quad.target_force[i])/100.0
-				torque = torque + cross(quad.motor_pos()[i], quad.current_force[i])
+				torque = torque + cross(quad.motor_pos[i], quad.current_force[i])
 
 			## Update angular momentum and normal
 			drag = 0.5 * world.fluid_density * quad.a_moment**2 * quad.drag_coefficient() * drag_volume_rotation(quad)

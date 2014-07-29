@@ -52,7 +52,6 @@ def draw_backdrop(size, ppm):
 		ysign ^= 1
 	return surface
 
-
 def draw_world(screen, quad, size, backdrop, ppm, fscale, world):
 	# first draw background
 	offset = (quad.position*ppm)%(2*ppm)
@@ -69,12 +68,12 @@ def draw_body(screen, quad, size, ppm, fscale):
 	my = size[1]/2
 	## Draw aircraft
 	pygame.draw.rect(screen, blue, (mx-quad.radius*ppm, my, 2*quad.radius*ppm, quad.beamwidth*ppm+1))
-	## Desired thrust
-	pygame.draw.line(screen, red, (mx+quad.radius*ppm, my), (mx+quad.radius*ppm, my-quad.target_force[0][1]*fscale), 5)
-	pygame.draw.line(screen, red, (mx-quad.radius*ppm, my), (mx-quad.radius*ppm, my-quad.target_force[1][1]*fscale), 5)
-	## actual thrust
-	pygame.draw.line(screen, green, (mx+quad.radius*ppm, my), (mx+quad.radius*ppm, my-quad.current_force[0][1]*fscale), 3)
-	pygame.draw.line(screen, green, (mx-quad.radius*ppm, my), (mx-quad.radius*ppm, my-quad.current_force[0][1]*FORCE_DRAW_SCALE), 3)
+	## draw forces
+	for i in range(quad.motors):
+		pygame.draw.line(screen, red, (mx+quad.motor_pos[i][0]*ppm, my),
+			(mx+quad.motor_pos[i][0]*ppm,my-quad.target_force[i][1]*fscale), 5)
+		pygame.draw.line(screen, green, (mx+quad.motor_pos[i][0]*ppm, my),
+			(mx+quad.motor_pos[i][0]*ppm, my-quad.current_force[i][1]*fscale), 3)
 
 def get_anglegrad(quad):
 	return (quad.get_angle()*180)/pi

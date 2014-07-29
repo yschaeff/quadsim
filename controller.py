@@ -28,6 +28,7 @@ class PIDController():
 		angle = self.pid(dt) #-pi - pi
 		f1 = (pi+angle)/(2*pi)
 		f2 = (pi-angle)/(2*pi)
+		# currect thrust with angle to maintain altitude
 		# this can lead to instability, unable to recover during a spin
 		# to fix this we need to normalize
 		#~ f1 /= cos(self.quad.get_angle())
