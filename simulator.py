@@ -4,20 +4,25 @@ def drag_area(quad):
 	return quad.area()
 	#TODO also depends on momentum and normal
 
-def check_sign(v1, v2):
-	c_same = 0; c_diff = 0
-	s1 = sign(v1); s2 = sign(v2)
-	for i in range(3):
-		if s1[i] != s2[i]:
-			c_diff += 1
-		elif v1[i] != -0 and v2[i] != 0:
-			c_same += 1
-	if c_same and c_diff:
-		return 0 #undecided, lets pretent there is no drag
-	elif c_diff:
-		return 1
-	else:
-		return -1
+def drag_area_rotation(quad):
+	"""factor 2 because 2 arms cause drag in pitch or roll"""
+	return 2*pi*quad.radius**2*quad.beamwith
+
+
+#~ def check_sign(v1, v2):
+	#~ c_same = 0; c_diff = 0
+	#~ s1 = sign(v1); s2 = sign(v2)
+	#~ for i in range(3):
+		#~ if s1[i] != s2[i]:
+			#~ c_diff += 1
+		#~ elif v1[i] != -0 and v2[i] != 0:
+			#~ c_same += 1
+	#~ if c_same and c_diff:
+		#~ return 0 #undecided, lets pretent there is no drag
+	#~ elif c_diff:
+		#~ return 1
+	#~ else:
+		#~ return -1
 
 def rotmatx(a):
 	return array([[1.0, 0, 0], [0, cos(a), -sin(a)], [0, sin(a), cos(a)]])
@@ -34,14 +39,16 @@ def rotmat(angle_rad):
 
 
 class QuadSimulator:
-	def __init__(self, t_start, steps):
-		self.t_start = t_start
+	#~ def __init__(self, t_start, steps):
+	def __init__(self, steps):
+		#~ self.t_start = t_start
 		self.steps = steps
 
-	def simulate(self, t_now, quad, controller, world):
+	def simulate(self, t_start, t_now, quad, controller, world):
 		dt = 1.0/self.steps
+		#~ print self, self.t_start, dt
 
-		while self.t_start < t_now:
+		while t_start < t_now:
 			controller.force(dt)
 			t1 = min(max(quad.thrust1, 0), quad.max_thrust)
 			t2 = min(max(quad.thrust2, 0), quad.max_thrust)
@@ -57,7 +64,11 @@ class QuadSimulator:
 			torque1 = cross(quad.motor_pos()[0], quad.f1_current)
 			torque2 = cross(quad.motor_pos()[1], quad.f2_current)
 			torque = torque1 + torque2
-			quad.a_moment = quad.a_moment + (torque/quad.moment_of_inertia())*dt
+			drag = 0.5 * world.fluid_density * quad.a_moment**2 * quad.drag_coefficient() * drag_area_rotation(quad)
+			## Drag lost sign due square, recover it.
+			if linalg.norm(quad.a_moment) != 0:
+				drag = (-quad.a_moment)/linalg.norm(quad.a_moment)*linalg.norm(drag)
+			quad.a_moment = quad.a_moment + (torque/quad.moment_of_inertia()+drag)*dt
 			rot_matrix = rotmat(quad.a_moment)
 			quad.normal = dot(rot_matrix, quad.normal)
 
@@ -74,7 +85,8 @@ class QuadSimulator:
 			#~ print quad.momentum, drag
 			quad.position = quad.position + quad.momentum * dt
 			
-			self.t_start += dt
+			t_start += dt
+		return t_start
 
 class World:
 	def __init__(self, G, fluid_density):
