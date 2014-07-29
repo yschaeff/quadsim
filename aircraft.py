@@ -6,6 +6,8 @@ class Aircraft:
 		self.mass = mass
 		self.max_thrust = max_thrust #per engine
 
+		self.beamwith = 0.015 # (m)
+
 		self.a_moment = array([0, 0, 0])
 		self.momentum = array([0, 0, 0])
 		self.f1_target = array([0, 0, 0])
@@ -25,5 +27,8 @@ class Aircraft:
 		return array([-self.radius, 0, 0]), \
 			   array([+self.radius, 0, 0])
 
-	def area(quad):
-		return quad.radius*4 * 0.015 
+	def area(self):
+		return self.radius*4 * self.beamwith
+
+	def drag_coefficient(self):
+		return 1
