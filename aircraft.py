@@ -31,3 +31,6 @@ class Aircraft:
 
 	def drag_coefficient(self):
 		return 1
+
+	def velocity(self):
+		return linalg.norm(self.momentum)

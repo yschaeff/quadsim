@@ -53,6 +53,7 @@ def draw_backdrop(size, ppm):
 	return surface
 
 def draw_world(screen, quad, size, backdrop, ppm, fscale, world):
+	global font_obj
 	# first draw background
 	offset = (quad.position*ppm)%(2*ppm)
 	screen.blit(backdrop, (0,0), (ppm*2-offset[0],
@@ -62,6 +63,14 @@ def draw_world(screen, quad, size, backdrop, ppm, fscale, world):
 	## Gravitational pull
 	pygame.draw.line(screen, green, (size[0]/2, size[1]/2),
 		(size[0]/2, size[1]/2+(quad.mass*world.G)*fscale), 3)
+
+	## text
+	label = font_obj.render(str(round(quad.velocity(), 1))+"m/s", 1, black)
+	screen.blit(label, (0, size[1]-25))
+	label = font_obj.render(str(round(quad.get_angle()*180/pi, 1))+"deg", 1, black)
+	screen.blit(label, (150, size[1]-25))
+	
+	#, fgcolor=None, bgcolor=None, style=STYLE_DEFAULT, rotation=0, size=0)
 
 def draw_body(screen, quad, size, ppm, fscale):
 	mx = size[0]/2
@@ -88,6 +97,7 @@ quad = Aircraft(RADIUS, MASS, MAX_THRUST)
 controller  = Controller(quad, world)
 
 pygame.init()
+font_obj = pygame.font.SysFont("monospace", 25)
 screen = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
 backdrop = draw_backdrop((WIN_WIDTH, WIN_HEIGHT), PIXELS_PER_METER)
 
