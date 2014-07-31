@@ -33,23 +33,27 @@ class QuadSimulator:
 		"""steps: number of simulation steps per second (Hz)"""
 		self.steps = steps
 
-	def simulate(self, t_start, t_now, quad, controller, world):
-		""" t_start: Time where last simulation ended
-			t_now: Time up onto simulation should run
-			returns t_start
+	def simulate(self, t_now, t_future, quad, controller, world):
+		""" t_now: Time where last simulation ended
+			t_future: Time up onto simulation should run
+			returns t_now
 			"""
 		dt = 1.0/self.steps
 
-		while t_start < t_now:
-			thrust = controller.force(dt)
-
+		while t_now < t_future:
+			if controller.lastrun+controller.cycle_time < t_now:
+				controller.force(controller.cycle_time)
+				controller.lastrun = t_now
+			
 			## Influence of all the motors on forces
 			torque = array([0,0,0])
 			for i in range(quad.motors):
-				t = min(max(thrust[i], 0), quad.max_thrust)
+				## cap requested thrust
+				t = min(max(controller.thrust[i], 0), quad.max_thrust)
+				## point it in the upwards direction
 				quad.target_force[i] = array([0, t, 0])
 				## Calculate current thrust
-				quad.current_force[i] = (99*quad.current_force[i] + quad.target_force[i])/100.0
+				quad.current_force[i] = ((1-quad.adjust_rate)*quad.current_force[i] + quad.adjust_rate*quad.target_force[i])
 				torque = torque + cross(quad.motor_pos[i], quad.current_force[i])
 
 			## Update angular momentum and normal
@@ -69,8 +73,8 @@ class QuadSimulator:
 			quad.momentum = quad.momentum + netforce*dt # (kg*m*s^-1)
 			quad.position = quad.position + (quad.momentum/quad.mass) * dt
 
-			t_start += dt
-		return t_start
+			t_now += dt
+		return t_now
 
 class World:
 	def __init__(self, G, fluid_density):

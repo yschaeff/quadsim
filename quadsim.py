@@ -13,14 +13,16 @@ from controller import PIDController as Controller
 G = 9.81 				# Earth gravitational pull (m*s^-2)
 ## Note: air@15C=1.225, water@15C=999
 AIR_DENSITY = 1.225		# Density of fluid (kg*m^-3)
-#~ AIR_DENSITY = 999		# Density of fluid (kg*m^-3)
 
 SIMULATIONS_PER_SECOND = 5000
+CONTROLLER_CYCLE_TIME = 0.003 # (s)
 
 ## Aircraft parameters
 RADIUS = 0.30 		# distance between center of craft and motor shaft (m)
 MASS = 1.2 			# mass of craft (kg)
 MAX_THRUST = G*MASS*2
+ADJUST_RATE = 0.01  # Change rate of motors (percentage/simulation_step)
+					# 1.0: infinitely fast
 
 ## Display parameters
 FPS = 60				# Frames per second (Hz)
@@ -66,10 +68,12 @@ def draw_world(screen, quad, size, backdrop, ppm, fscale, world):
 		(size[0]/2, size[1]/2+(quad.mass*world.G)*fscale), 3)
 
 	## text
-	label = font_obj.render(str(round(quad.velocity(), 1))+"m/s", 1, black)
+	label = font_obj.render("% 3.1fm/s"%quad.velocity(), 1, black)
 	screen.blit(label, (0, size[1]-25))
-	label = font_obj.render(str(round(quad.get_angle()*180/pi, 1))+"deg", 1, black)
+	label = font_obj.render("% 3ddeg"%round(quad.get_angle()*180/pi, 1), 1, black)
 	screen.blit(label, (150, size[1]-25))
+	label = font_obj.render("% 3drad/s"%round(sign(quad.a_moment[2])*linalg.norm(quad.a_moment/quad.mass), 1), 1, black)
+	screen.blit(label, (300, size[1]-25))
 	
 	#, fgcolor=None, bgcolor=None, style=STYLE_DEFAULT, rotation=0, size=0)
 
@@ -94,8 +98,8 @@ dt = 1.0/FPS
 t_sim = t
 world = World(G, AIR_DENSITY)
 sim = QuadSimulator(SIMULATIONS_PER_SECOND)
-quad = Aircraft(RADIUS, MASS, MAX_THRUST)
-controller  = Controller(quad, world)
+quad = Aircraft(RADIUS, MASS, MAX_THRUST, ADJUST_RATE)
+controller  = Controller(quad, world, CONTROLLER_CYCLE_TIME)
 
 pygame.init()
 font_obj = pygame.font.SysFont("monospace", 25)

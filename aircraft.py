@@ -1,10 +1,11 @@
 from numpy import *
 
 class Aircraft:
-	def __init__(self, radius, mass, max_thrust):
+	def __init__(self, radius, mass, max_thrust, adjust_rate):
 		self.radius = radius
 		self.mass = mass
 		self.max_thrust = max_thrust #per engine
+		self.adjust_rate = adjust_rate
 
 		self.beamwidth = 0.015 # (m)
 		self.motors = 2
