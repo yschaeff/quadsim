@@ -57,7 +57,7 @@ def draw_backdrop(size, ppm):
 		ysign ^= 1
 	return surface
 
-def draw_world(screen, quad, size, backdrop, ppm, fscale, world):
+def draw_world(screen, quad, controller, size, backdrop, ppm, fscale, world):
 	global font_obj
 	# first draw background
 	offset = (quad.position*ppm)%(2*ppm)
@@ -68,6 +68,7 @@ def draw_world(screen, quad, size, backdrop, ppm, fscale, world):
 	## Gravitational pull
 	pygame.draw.line(screen, green, (size[0]/2, size[1]/2),
 		(size[0]/2, size[1]/2+(quad.mass*world.G)*fscale), 3)
+	pygame.draw.line(screen, red, (size[0]/2, size[1]/2), (size[0]/2-ppm*sin(controller.target_angle), size[1]/2-ppm*cos(controller.target_angle)), 5)
 
 	## text
 	label = font_obj.render("% 3.1fm/s"%quad.velocity(), 1, black)
@@ -79,7 +80,7 @@ def draw_world(screen, quad, size, backdrop, ppm, fscale, world):
 	
 	#, fgcolor=None, bgcolor=None, style=STYLE_DEFAULT, rotation=0, size=0)
 
-def draw_body(screen, quad, size, ppm, fscale):
+def draw_body(screen, quad, controller, size, ppm, fscale):
 	mx = size[0]/2
 	my = size[1]/2
 	## Draw aircraft
@@ -90,6 +91,7 @@ def draw_body(screen, quad, size, ppm, fscale):
 			(mx-quad.motor_pos[i][0]*ppm,my-quad.target_force[i][1]*fscale), 5)
 		pygame.draw.line(screen, green, (mx-quad.motor_pos[i][0]*ppm, my),
 			(mx-quad.motor_pos[i][0]*ppm, my-quad.current_force[i][1]*fscale), 3)
+		pygame.draw.line(screen, green, (mx, my), (mx, my-ppm), 3)
 
 def get_anglegrad(quad):
 	return (quad.get_angle()*180)/pi
@@ -140,12 +142,12 @@ while True:
 	t_sim = sim.simulate(t_sim, t+dt*SPEED, quad, controller, world)
 
 	#draw
-	draw_world(screen, quad, (WIN_WIDTH, WIN_HEIGHT), backdrop, PIXELS_PER_METER, FORCE_DRAW_SCALE, world)
+	draw_world(screen, quad, controller, (WIN_WIDTH, WIN_HEIGHT), backdrop, PIXELS_PER_METER, FORCE_DRAW_SCALE, world)
 
 	surface = pygame.Surface((WIN_WIDTH, WIN_HEIGHT))
 	surface.fill(transparant)
 	surface.set_colorkey(transparant)
-	draw_body(surface, quad, (WIN_WIDTH, WIN_HEIGHT), PIXELS_PER_METER, FORCE_DRAW_SCALE)
+	draw_body(surface, quad, controller, (WIN_WIDTH, WIN_HEIGHT), PIXELS_PER_METER, FORCE_DRAW_SCALE)
 
 	surface = pygame.transform.rotate(surface, get_anglegrad(quad))
 	r = surface.get_rect()
