@@ -1,10 +1,11 @@
 from numpy import *
 
 class PIDController():
-	def __init__(self, quad, world, cycle_time):
+	def __init__(self, quad, world, cycle_time, acro_mode):
 		self.quad = quad
 		self.world = world
 		self.cycle_time = cycle_time
+		self.acro_mode = acro_mode
 		self.reset()
 
 	def reset(self):
@@ -14,6 +15,18 @@ class PIDController():
 		self.target_angle = 0
 		self.lastrun = 0
 		self.thrust = [0, 0]
+		self.input = [0,0,0,0] #4 channels, thrust, yaw, pitch, roll
+
+	def handle_input(self):
+		self.thrustscalar = 1*(self.input[0]+1)
+		if self.acro_mode:
+			self.target_angle += self.input[3] * self.cycle_time * 10
+			while self.target_angle > pi:
+				self.target_angle -= 2*pi
+			while self.target_angle < -pi:
+				self.target_angle += 2*pi
+		else:
+			self.target_angle = self.input[3] * pi/4
 
 	def pid(self, dt): #return tuple motor force
 		#~ return (self.target_angle - self.quad.get_angle())/10000
@@ -28,7 +41,10 @@ class PIDController():
 		return kp*error + ki*self.integral + kd*derivative
 
 	def force(self, dt):
+		self.handle_input()
 		angle = self.pid(dt) #-pi - pi
+		if angle > pi or angle < -pi:
+			angle = -angle
 		f1 = (pi+angle)/(2*pi)
 		f2 = (pi-angle)/(2*pi)
 		# currect thrust with angle to maintain altitude

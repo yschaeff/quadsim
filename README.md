@@ -17,12 +17,12 @@ Features
 * aircraft steerable
 * reasonable drag model
 * motors do not respond infinitely fast
+* controller cycle time is considered
 
 Missing features
 * Sensors (with jitter and max update frequency)
 * propellers are not modelled.
 * Yaw (motors generate no toque along their shaft)
-* controller should not run every simulation step
 
 Usage
 -----

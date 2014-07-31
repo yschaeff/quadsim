@@ -14,15 +14,17 @@ G = 9.81 				# Earth gravitational pull (m*s^-2)
 ## Note: air@15C=1.225, water@15C=999
 AIR_DENSITY = 1.225		# Density of fluid (kg*m^-3)
 
-SIMULATIONS_PER_SECOND = 5000
-CONTROLLER_CYCLE_TIME = 0.003 # (s)
+SIMULATIONS_PER_SECOND = 5000 # (Hz) Higher values give a more accurate simulation
+CONTROLLER_CYCLE_TIME = 0.003 # (s) Seconds it will take the PID controller
+							  # to run an entire cycle.
 
 ## Aircraft parameters
 RADIUS = 0.30 		# distance between center of craft and motor shaft (m)
 MASS = 1.2 			# mass of craft (kg)
-MAX_THRUST = G*MASS*2
+MAX_THRUST = G*MASS*2 # How much force a motor can give (N)
 ADJUST_RATE = 0.01  # Change rate of motors (percentage/simulation_step)
 					# 1.0: infinitely fast
+ACRO_MODE = 0		# 1 acrobatic mode, 0 stable (will center on stick release)
 
 ## Display parameters
 FPS = 60				# Frames per second (Hz)
@@ -99,7 +101,7 @@ t_sim = t
 world = World(G, AIR_DENSITY)
 sim = QuadSimulator(SIMULATIONS_PER_SECOND)
 quad = Aircraft(RADIUS, MASS, MAX_THRUST, ADJUST_RATE)
-controller  = Controller(quad, world, CONTROLLER_CYCLE_TIME)
+controller  = Controller(quad, world, CONTROLLER_CYCLE_TIME, ACRO_MODE)
 
 pygame.init()
 font_obj = pygame.font.SysFont("monospace", 25)
@@ -120,18 +122,19 @@ while True:
 	if keys[ord(' ')]:
 		quad.reset()
 		controller.reset()
+	## map key presses to stick positions [-1..0..1]
 	if keys[pygame.K_UP]:
-		controller.thrustscalar = 2
+		controller.input[0] = 1
 	elif keys[pygame.K_DOWN]:
-		controller.thrustscalar = 0
+		controller.input[0] = -1
 	else:
-		controller.thrustscalar = 1
+		controller.input[0] = 0
 	if keys[pygame.K_LEFT]:
-		controller.target_angle = pi/4
+		controller.input[3] = 1
 	elif keys[pygame.K_RIGHT]:
-		controller.target_angle = -pi/4
+		controller.input[3] = -1
 	else:
-		controller.target_angle = 0
+		controller.input[3] = 0
 
 	#simulate until time t (future) -> time_sim
 	t_sim = sim.simulate(t_sim, t+dt*SPEED, quad, controller, world)
