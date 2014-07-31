@@ -20,9 +20,6 @@ class Aircraft:
 		self.motor_pos = array([-self.radius, 0, 0]), \
 						 array([+self.radius, 0, 0])
 
-	def moment_of_inertia(self):
-		return self.radius**2 * self.mass
-
 	def get_angle(self):
 		return arctan2(self.normal[0], self.normal[1])
 

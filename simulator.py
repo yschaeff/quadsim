@@ -1,21 +1,5 @@
 from numpy import *
 
-def drag_volume(quad):
-	""" Volume of air displaced traveling 1m*s^-1
-		This is only accurate while travling in direction  of
-		normal. """
-	#TODO also depends on momentum and normal
-	return quad.area()
-
-def drag_volume_rotation(quad):
-	""" Volume of air displaced for 1 rotation along pitch or roll
-		assumes +-copter"""
-	return 2*pi*quad.radius**2*quad.beamwidth
-
-def drag_volume_rotation_yaw(quad):
-	""" Volume of air displaced for 1 rotation along yaw"""
-	return 4*pi*quad.radius**2*quad.beamwidth
-
 def rotmatx(a):
 	"""Rotation Matrix to rotate vector around x-axis"""
 	return array([[1.0, 0, 0], [0, cos(a), -sin(a)], [0, sin(a), cos(a)]])
@@ -69,22 +53,22 @@ class QuadSimulator:
 				torque = torque + cross(quad.motor_pos[i], quad.current_force[i])
 
 			## Update angular momentum and normal
-			drag = 0.5 * world.fluid_density * quad.a_moment**2 * quad.drag_coefficient() * drag_volume_rotation(quad)
+			drag = 0.5 * world.fluid_density * (quad.a_moment/quad.mass)**2 * quad.drag_coefficient() * quad.area()*2*pi
 			drag = correct_drag(drag, quad.a_moment)
-			quad.a_moment = quad.a_moment + (torque/quad.moment_of_inertia()+drag)*dt
-			rot_matrix = rotmat(quad.a_moment)
+			quad.a_moment = quad.a_moment + torque + drag*dt
+			rot_matrix = rotmat((quad.a_moment/quad.mass)*dt)
 			quad.normal = dot(rot_matrix, quad.normal)
 
 			## linear drag
-			drag = 0.5 * world.fluid_density * quad.momentum**2 * quad.drag_coefficient() * drag_volume(quad)
-			drag = correct_drag(drag, quad.momentum)
+			drag = 0.5 * world.fluid_density * (quad.momentum/quad.mass)**2 * quad.drag_coefficient() * quad.area()
+			drag = correct_drag(drag, quad.momentum) #(N)
 			## update position and linear momentum
 			ratio = linalg.norm(quad.current_force[0] + quad.current_force[1]) / linalg.norm(quad.normal)
-			earth_pull = array([0, -world.G*quad.mass, 0])	# Gravitational Force (kg*m*s^-1)
+			earth_pull = array([0, -world.G*quad.mass, 0])	# Gravitational Force (kg*m*s^-2 = N)
 			netforce = (quad.normal * ratio) + earth_pull + drag
-			quad.momentum = quad.momentum + (netforce/quad.mass)*dt
-			quad.position = quad.position + quad.momentum * dt
-			
+			quad.momentum = quad.momentum + netforce*dt # (kg*m*s^-1)
+			quad.position = quad.position + (quad.momentum/quad.mass) * dt
+
 			t_start += dt
 		return t_start
 

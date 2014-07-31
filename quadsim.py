@@ -13,6 +13,7 @@ from controller import PIDController as Controller
 G = 9.81 				# Earth gravitational pull (m*s^-2)
 ## Note: air@15C=1.225, water@15C=999
 AIR_DENSITY = 1.225		# Density of fluid (kg*m^-3)
+#~ AIR_DENSITY = 999		# Density of fluid (kg*m^-3)
 
 SIMULATIONS_PER_SECOND = 5000
 
@@ -79,10 +80,10 @@ def draw_body(screen, quad, size, ppm, fscale):
 	pygame.draw.rect(screen, blue, (mx-quad.radius*ppm, my, 2*quad.radius*ppm, quad.beamwidth*ppm+1))
 	## draw forces
 	for i in range(quad.motors):
-		pygame.draw.line(screen, red, (mx+quad.motor_pos[i][0]*ppm, my),
-			(mx+quad.motor_pos[i][0]*ppm,my-quad.target_force[i][1]*fscale), 5)
-		pygame.draw.line(screen, green, (mx+quad.motor_pos[i][0]*ppm, my),
-			(mx+quad.motor_pos[i][0]*ppm, my-quad.current_force[i][1]*fscale), 3)
+		pygame.draw.line(screen, red, (mx-quad.motor_pos[i][0]*ppm, my),
+			(mx-quad.motor_pos[i][0]*ppm,my-quad.target_force[i][1]*fscale), 5)
+		pygame.draw.line(screen, green, (mx-quad.motor_pos[i][0]*ppm, my),
+			(mx-quad.motor_pos[i][0]*ppm, my-quad.current_force[i][1]*fscale), 3)
 
 def get_anglegrad(quad):
 	return (quad.get_angle()*180)/pi
