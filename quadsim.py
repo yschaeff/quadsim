@@ -5,7 +5,7 @@ import pygame
 from pygame.locals import *
 import sys
 from numpy import *
-from simulator import QuadSimulator, World
+from simulator import QuadSimulator, World, z_angle
 from aircraft import Aircraft
 from controller import PIDController as Controller
 
@@ -25,6 +25,9 @@ MAX_THRUST = G*MASS*2 # How much force a motor can give (N)
 ADJUST_RATE = 0.01  # Change rate of motors (percentage/simulation_step)
 					# 1.0: infinitely fast
 ACRO_MODE = 0		# 1 acrobatic mode, 0 stable (will center on stick release)
+GYRO_SIGMA = 0.02	# Noise in gyroscope output. 68% of the samples is
+					# in -sigma..sigma range around actual value.
+					# 96% within -2*sigma..2*sigma
 
 ## Display parameters
 FPS = 60				# Frames per second (Hz)
@@ -73,7 +76,7 @@ def draw_world(screen, quad, controller, size, backdrop, ppm, fscale, world):
 	## text
 	label = font_obj.render("% 3.1fm/s"%quad.velocity(), 1, black)
 	screen.blit(label, (0, size[1]-25))
-	label = font_obj.render("% 3ddeg"%round(quad.get_angle()*180/pi, 1), 1, black)
+	label = font_obj.render("% 3ddeg"%round(rad2deg(z_angle(quad.normal)), 1), 1, black)
 	screen.blit(label, (150, size[1]-25))
 	label = font_obj.render("% 3drad/s"%round(sign(quad.a_moment[2])*linalg.norm(quad.a_moment/quad.mass), 1), 1, black)
 	screen.blit(label, (300, size[1]-25))
@@ -93,16 +96,13 @@ def draw_body(screen, quad, controller, size, ppm, fscale):
 			(mx-quad.motor_pos[i][0]*ppm, my-quad.current_force[i][1]*fscale), 3)
 		pygame.draw.line(screen, green, (mx, my), (mx, my-ppm), 3)
 
-def get_anglegrad(quad):
-	return (quad.get_angle()*180)/pi
-
 ## Simulation initialization
 t = time()*SPEED
 dt = 1.0/FPS
 t_sim = t
 world = World(G, AIR_DENSITY)
 sim = QuadSimulator(SIMULATIONS_PER_SECOND)
-quad = Aircraft(RADIUS, MASS, MAX_THRUST, ADJUST_RATE)
+quad = Aircraft(RADIUS, MASS, MAX_THRUST, ADJUST_RATE, GYRO_SIGMA)
 controller  = Controller(quad, world, CONTROLLER_CYCLE_TIME, ACRO_MODE)
 
 pygame.init()
@@ -149,7 +149,7 @@ while True:
 	surface.set_colorkey(transparant)
 	draw_body(surface, quad, controller, (WIN_WIDTH, WIN_HEIGHT), PIXELS_PER_METER, FORCE_DRAW_SCALE)
 
-	surface = pygame.transform.rotate(surface, get_anglegrad(quad))
+	surface = pygame.transform.rotate(surface, rad2deg(z_angle(quad.normal)))
 	r = surface.get_rect()
 	r.center = WIN_WIDTH/2, WIN_HEIGHT/2
 	screen.blit(surface, r)

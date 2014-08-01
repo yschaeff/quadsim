@@ -1,5 +1,8 @@
 from numpy import *
 
+def z_angle(vector):
+	return arctan2(vector[0], vector[1])
+
 def rotmatx(a):
 	"""Rotation Matrix to rotate vector around x-axis"""
 	return array([[1.0, 0, 0], [0, cos(a), -sin(a)], [0, sin(a), cos(a)]])

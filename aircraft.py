@@ -1,7 +1,8 @@
 from numpy import *
+from random import gauss
 
 class Aircraft:
-	def __init__(self, radius, mass, max_thrust, adjust_rate):
+	def __init__(self, radius, mass, max_thrust, adjust_rate, gyro_sigma):
 		self.radius = radius
 		self.mass = mass
 		self.max_thrust = max_thrust #per engine
@@ -12,6 +13,8 @@ class Aircraft:
 		self.reset()
 		self.position = array([0, 0, 0])
 
+		self.gyro = Gyro(gyro_sigma, self)
+
 	def reset(self):
 		self.a_moment = array([0, 0, 0])
 		self.momentum = array([0, 0, 0])
@@ -21,9 +24,6 @@ class Aircraft:
 		self.motor_pos = array([-self.radius, 0, 0]), \
 						 array([+self.radius, 0, 0])
 
-	def get_angle(self):
-		return arctan2(self.normal[0], self.normal[1])
-
 	def area(self):
 		return self.radius*4 * self.beamwidth
 
@@ -32,3 +32,25 @@ class Aircraft:
 
 	def velocity(self):
 		return linalg.norm(self.momentum)
+
+class Sensor:
+	def __init__(self, sigma, aircraft):
+		self.sigma = sigma
+		self.aircraft = aircraft
+
+	def randomize_scalar(self, value):
+		if self.sigma == 0:
+			return value;
+		return guass(value, self.sigma)
+
+	def randomize_vector(self, vector):
+		if self.sigma == 0:
+			return vector;
+		return vector + random.normal(0, self.sigma, len(vector))
+
+	def read(self): ## implement this in inherited obj.
+		pass
+
+class Gyro(Sensor):
+	def read(self):
+		return self.randomize_vector(self.aircraft.normal)

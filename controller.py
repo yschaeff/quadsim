@@ -1,4 +1,5 @@
 from numpy import *
+from simulator import z_angle
 
 class PIDController():
 	def __init__(self, quad, world, cycle_time, acro_mode):
@@ -34,7 +35,7 @@ class PIDController():
 		ki = 0.2 *0
 		kd = kp *0.2
 
-		error = self.target_angle - self.quad.get_angle()
+		error = self.target_angle - z_angle(self.quad.gyro.read())
 		self.integral += error*dt
 		derivative = (error - self.error)/dt
 		self.error = error
