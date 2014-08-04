@@ -13,6 +13,7 @@ from controller import PIDController as Controller
 G = 9.81 				# Earth gravitational pull (m*s^-2)
 ## Note: air@15C=1.225, water@15C=999
 AIR_DENSITY = 1.225		# Density of fluid (kg*m^-3)
+#~ AIR_DENSITY = 999		# Density of fluid (kg*m^-3)
 
 SIMULATIONS_PER_SECOND = 5000 # (Hz) Higher values give a more accurate simulation
 CONTROLLER_CYCLE_TIME = 0.003 # (s) Seconds it will take the PID controller
@@ -21,7 +22,7 @@ CONTROLLER_CYCLE_TIME = 0.003 # (s) Seconds it will take the PID controller
 ## Aircraft parameters
 RADIUS = 0.30 		# distance between center of craft and motor shaft (m)
 MASS = 1.2 			# mass of craft (kg)
-MAX_THRUST = G*MASS*2 # How much force a motor can give (N)
+MAX_THRUST = G*MASS*1.3 # How much force a motor can give (N)
 ADJUST_RATE = 0.01  # Change rate of motors (percentage/simulation_step)
 					# 1.0: infinitely fast
 ACRO_MODE = 0		# 1 acrobatic mode, 0 stable (will center on stick release)

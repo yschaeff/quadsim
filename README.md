@@ -18,9 +18,10 @@ Features
 * reasonable drag model
 * motors do not respond infinitely fast
 * controller cycle time is considered
+* Sensor readout noise
 
 Missing features
-* Sensors (with jitter and max update frequency)
+* max update frequency for sensors
 * propellers are not modelled.
 * Yaw (motors generate no toque along their shaft)
 

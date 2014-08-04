@@ -12,6 +12,7 @@ class Aircraft:
 		self.motors = 2
 		self.reset()
 		self.position = array([0, 0, 0])
+		self.area = radius*4 * self.beamwidth
 
 		self.gyro = Gyro(gyro_sigma, self)
 
@@ -24,16 +25,15 @@ class Aircraft:
 		self.motor_pos = array([-self.radius, 0, 0]), \
 						 array([+self.radius, 0, 0])
 
-	def area(self):
-		return self.radius*4 * self.beamwidth
-
 	def drag_coefficient(self):
+		## for realism this should depend on flow direction
 		return 1
 
 	def velocity(self):
 		return linalg.norm(self.momentum)
 
 class Sensor:
+	""" Base class for sensors, do not use directly but inherit from it."""
 	def __init__(self, sigma, aircraft):
 		self.sigma = sigma
 		self.aircraft = aircraft

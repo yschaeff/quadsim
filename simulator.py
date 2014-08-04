@@ -52,7 +52,7 @@ class QuadSimulator:
 			torque = array([0,0,0])
 			for i in range(quad.motors):
 				## cap requested thrust
-				t = min(max(controller.thrust[i], 0), quad.max_thrust)
+				t = min(max(controller.thrust[i], 0), 1) * quad.max_thrust
 				## point it in the upwards direction
 				quad.target_force[i] = array([0, t, 0])
 				## Calculate current thrust
@@ -60,14 +60,14 @@ class QuadSimulator:
 				torque = torque + cross(quad.motor_pos[i], quad.current_force[i])
 
 			## Update angular momentum and normal
-			drag = 0.5 * world.fluid_density * (quad.a_moment/quad.mass)**2 * quad.drag_coefficient() * quad.area()*2*pi
+			drag = 0.5 * world.fluid_density * (quad.a_moment/quad.mass)**2 * quad.drag_coefficient() * quad.area*2*pi
 			drag = correct_drag(drag, quad.a_moment)
 			quad.a_moment = quad.a_moment + torque + drag*dt
 			rot_matrix = rotmat((quad.a_moment/quad.mass)*dt)
 			quad.normal = dot(rot_matrix, quad.normal)
 
 			## linear drag
-			drag = 0.5 * world.fluid_density * (quad.momentum/quad.mass)**2 * quad.drag_coefficient() * quad.area()
+			drag = 0.5 * world.fluid_density * (quad.momentum/quad.mass)**2 * quad.drag_coefficient() * quad.area
 			drag = correct_drag(drag, quad.momentum) #(N)
 			## update position and linear momentum
 			ratio = linalg.norm(quad.current_force[0] + quad.current_force[1]) / linalg.norm(quad.normal)
