@@ -39,13 +39,18 @@ class PIDController():
 			self.target_angle = self.input[3] * pi/4
 
 	def pid(self, measured_angle, dt): #return tuple motor force
-		#~ return (self.target_angle - self.quad.get_angle())/10000
-		kp = 0.020 * 1
-		ki = 0.040 * 1
-		kd = 0.003 * 1
+		#~ return (self.target_angle - z_angle(measured_angle))/1000
+		kp = 0.04 * 1
+		ki = 0.01 * 1
+		kd = 0.005 * 1
 
 		error = self.target_angle - z_angle(measured_angle)
+		## make sure we handle transition from -pi to +pi
+		if error > pi or error < -pi:
+			error = 2*pi-error
 		self.integral += error*dt
+		## Don't build up excessive integral term
+		self.integral = max(min(self.integral, pi/8), -pi/8)
 		derivative = (error - self.error)/dt
 		self.error = error
 		return kp*error + ki*self.integral + kd*derivative
