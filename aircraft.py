@@ -19,6 +19,7 @@ class Aircraft:
 	def reset(self):
 		self.a_moment = array([0, 0, 0])
 		self.momentum = array([0, 0, 0])
+		self.acceleration = array([0, 0, 0])
 		self.target_force  = [array([0, 0, 0]), array([0, 0, 0])]
 		self.current_force = [array([0, 0, 0]), array([0, 0, 0])]
 		self.normal = array([0, 1, 0])

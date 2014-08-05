@@ -76,6 +76,10 @@ class QuadSimulator:
 			quad.momentum = quad.momentum + netforce*dt # (kg*m*s^-1)
 			quad.position = quad.position + (quad.momentum/quad.mass) * dt
 
+			## generate some factual data for our Accelerometer.
+			#in world frame
+			quad.acceleration = netforce/quad.mass
+
 			t_now += dt
 		return t_now
 

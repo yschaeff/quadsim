@@ -76,11 +76,13 @@ def draw_world(screen, quad, controller, size, backdrop, ppm, fscale, world):
 
 	## text
 	label = font_obj.render("% 3.1fm/s"%quad.velocity(), 1, black)
-	screen.blit(label, (0, size[1]-25))
+	screen.blit(label, (0, size[1]-50))
 	label = font_obj.render("% 3ddeg"%round(rad2deg(z_angle(quad.normal)), 1), 1, black)
-	screen.blit(label, (150, size[1]-25))
+	screen.blit(label, (150, size[1]-50))
 	label = font_obj.render("% 3drad/s"%round(sign(quad.a_moment[2])*linalg.norm(quad.a_moment/quad.mass), 1), 1, black)
-	screen.blit(label, (300, size[1]-25))
+	screen.blit(label, (150, size[1]-25))
+	label = font_obj.render("% 3.1fG"%round(linalg.norm(quad.acceleration)/G, 1), 1, black)
+	screen.blit(label, (0, size[1]-25))
 	
 	#, fgcolor=None, bgcolor=None, style=STYLE_DEFAULT, rotation=0, size=0)
 
