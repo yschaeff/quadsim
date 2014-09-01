@@ -29,6 +29,9 @@ ACRO_MODE = 0		# 1 acrobatic mode, 0 stable (will center on stick release)
 GYRO_SIGMA = 0.02	# Noise in gyroscope output. 68% of the samples is
 					# in -sigma..sigma range around actual value.
 					# 96% within -2*sigma..2*sigma
+ACC_SIGMA = 0.02	# Noise in acceleration meter output. 68% of the
+					# samples is in -sigma..sigma range around actual
+					# value. 96% within -2*sigma..2*sigma
 
 ## Display parameters
 FPS = 60				# Frames per second (Hz)
@@ -36,7 +39,7 @@ FORCE_DRAW_SCALE = 10 	# (pixels/N)
 PIXELS_PER_METER = 100	# (pixels/m)
 WIN_WIDTH = 640			# (pixels)
 WIN_HEIGHT = 480		# (pixels)
-SPEED = 1				# ratio. SPEED<1 => slowdown (dimensionless) 
+SPEED = 1				# ratio. SPEED<1 => slowdown (dimensionless)
 
 ## Colors, used by gui
 white     = (255,255,255)
@@ -105,7 +108,7 @@ dt = 1.0/FPS
 t_sim = t
 world = World(G, AIR_DENSITY)
 sim = QuadSimulator(SIMULATIONS_PER_SECOND)
-quad = Aircraft(RADIUS, MASS, MAX_THRUST, ADJUST_RATE, GYRO_SIGMA)
+quad = Aircraft(RADIUS, MASS, MAX_THRUST, ADJUST_RATE, GYRO_SIGMA, ACC_SIGMA)
 controller  = Controller(quad, world, CONTROLLER_CYCLE_TIME, ACRO_MODE)
 
 pygame.init()

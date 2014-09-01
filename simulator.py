@@ -1,5 +1,11 @@
 from numpy import *
 
+def vector2angles(vector):
+	return array([
+		arctan2(vector[2], vector[1]),
+		arctan2(vector[2], vector[0]),
+		arctan2(vector[1], vector[0])])
+
 def z_angle(vector):
 	return arctan2(vector[0], vector[1])
 
@@ -77,8 +83,7 @@ class QuadSimulator:
 			quad.position = quad.position + (quad.momentum/quad.mass) * dt
 
 			## generate some factual data for our Accelerometer.
-			#in world frame
-			quad.acceleration = netforce/quad.mass
+			quad.acceleration = dot(rotmat(vector2angles(array([0,1,0]))-vector2angles(quad.normal)), netforce/quad.mass)
 
 			t_now += dt
 		return t_now

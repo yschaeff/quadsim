@@ -41,7 +41,7 @@ class PIDController():
 	def pid(self, measured_angle, dt): #return tuple motor force
 		#~ return (self.target_angle - z_angle(measured_angle))/1000
 		kp = 0.04 * 1
-		ki = 0.01 * 1
+		ki = 0.5 * 1
 		kd = 0.005 * 1
 
 		error = self.target_angle - z_angle(measured_angle)
@@ -57,6 +57,7 @@ class PIDController():
 
 	def force(self, dt):
 		self.handle_input()
+		measured_acc = self.quad.acc.read()
 		measured_angle = self.quad.gyro.read()
 		angle = self.pid(measured_angle, dt) #-pi - pi
 		if angle > pi or angle < -pi:
