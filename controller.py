@@ -28,7 +28,7 @@ class PIDController():
 		
 		if self.acro_mode:
 			## Acro mode, angle is increased by stick position
-			self.target_angle += self.input[3] * self.cycle_time * 10
+			self.target_angle += self.input[3] * self.cycle_time * 20
 			## Wrap angle around, sort of modules operation.
 			while self.target_angle > pi:
 				self.target_angle -= 2*pi
@@ -40,14 +40,19 @@ class PIDController():
 
 	def pid(self, measured_angle, dt): #return tuple motor force
 		#~ return (self.target_angle - z_angle(measured_angle))/1000
-		kp = 0.04 * 1
-		ki = 0.5 * 1
+		kp = 0.08 * 1
+		ki = 0.1 * 1
 		kd = 0.005 * 1
 
 		error = self.target_angle - z_angle(measured_angle)
 		## make sure we handle transition from -pi to +pi
+		while error > pi:
+			error -= 2*pi
+		while error < -pi:
+			error += 2*pi
 		if error > pi or error < -pi:
 			error = 2*pi-error
+
 		self.integral += error*dt
 		## Don't build up excessive integral term
 		self.integral = max(min(self.integral, pi/8), -pi/8)
@@ -62,14 +67,13 @@ class PIDController():
 		angle = self.pid(measured_angle, dt) #-pi - pi
 		if angle > pi or angle < -pi:
 			angle = -angle
-
 		## divide thrust on motors depending on angle
 		f1 = (pi+angle)/(2*pi)
 		f2 = (pi-angle)/(2*pi)
 
-		# currect thrust with angle to maintain altitude
-		f1 /= cos(z_angle(measured_angle))
-		f2 /= cos(z_angle(measured_angle))
+		#~ # currect thrust with angle to maintain altitude
+		#~ f1 /= cos(z_angle(measured_angle))
+		#~ f2 /= cos(z_angle(measured_angle))
 
 		## Normalize, This will make sure the aircraft is steerable
 		## even at full thrust. Prevent div by 0
